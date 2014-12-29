@@ -69,10 +69,10 @@ public OnPluginStart()
 {
 	//Cvars
 	CreateConVar("sm_dr_version", DR_VERSION, "Death Run Redux Version.", FCVAR_REPLICATED | FCVAR_PLUGIN | FCVAR_SPONLY | FCVAR_DONTRECORD | FCVAR_NOTIFY);
-	dr_Enabled					= CreateConVar("sm_dr_enabled",	"1", "Enables / Disables the Death Run Redux plugin.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	dr_Outlines				= CreateConVar("sm_dr_outlines",	"1", "Enables / Disables ability to players from runners team be seen throught walls by outline", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	dr_MeleeOnly				= CreateConVar("sm_dr_melee_only",	"1", "Enables / Disables the exclusive use of melee weapons",FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	dr_MeleeType				= CreateConVar("sm_dr_melee_type",	"1", "Type of melee restriction. 0: No restriction. 1: Gives default weapon to player's class.\n2: Gives all-class weapons. Only works if sm_dr_melee_only is in 1.",FCVAR_PLUGIN, true, 0.0, true, 2.0);
+	dr_Enabled = CreateConVar("sm_dr_enabled",	"1", "Enables / Disables the Death Run Redux plugin.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	dr_Outlines = CreateConVar("sm_dr_outlines",	"1", "Enables / Disables ability to players from runners team be seen throught walls by outline", FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	dr_MeleeOnly = CreateConVar("sm_dr_melee_only",	"1", "Enables / Disables the exclusive use of melee weapons",FCVAR_PLUGIN, true, 0.0, true, 1.0);
+	dr_MeleeType = CreateConVar("sm_dr_melee_type",	"1", "Type of melee restriction. 0: No restriction. 1: Gives default weapon to player's class.\n2: Gives all-class weapons. Only works if sm_dr_melee_only is in 1.",FCVAR_PLUGIN, true, 0.0, true, 2.0);
 	
 	//Defaults variables values
 	g_Enabled = GetConVarInt(dr_Enabled);
