@@ -74,11 +74,13 @@ public OnPluginStart()
 	dr_MeleeOnly				= CreateConVar("sm_dr_melee_only",	"1", "Enables / Disables the exclusive use of melee weapons",FCVAR_PLUGIN, true, 0.0, true, 1.0);
 	dr_MeleeType				= CreateConVar("sm_dr_melee_type",	"1", "Type of melee restriction. 0: No restriction. 1: Gives default weapon to player's class.\n2: Gives all-class weapons. Only works if sm_dr_melee_only is in 1.",FCVAR_PLUGIN, true, 0.0, true, 2.0);
 	
+	//Defaults variables values
 	g_Enabled = GetConVarInt(dr_Enabled);
 	g_Outlines = GetConVarInt(dr_Outlines);
 	g_MeleeOnly = GetConVarInt(dr_MeleeOnly);
 	g_MeleeType = GetConVarInt(dr_MeleeType);
 	
+	//Server's Cvars
 	dr_queue = FindConVar("tf_arena_use_queue");
 	dr_unbalance = FindConVar("mp_teams_unbalance_limit");
 	dr_autobalance = FindConVar("mp_autoteambalance");
@@ -99,13 +101,12 @@ public OnPluginStart()
 	HookEvent("post_inventory_application", OnPlayerInventory);
 	HookEvent("player_spawn", OnPlayerSpawn);
 	
-	AutoExecConfig(true, "plugin.deathrun_redux");
-
 	AddCommandListener(Command_Block,"build");
 	AddCommandListener(Command_Block,"kill");
 	AddCommandListener(Command_Block,"explode");
 	
-	AddServerTag("deathrun");
+	AutoExecConfig(true, "plugin.deathrun_redux");
+
 }
 
 /* OnPluginEnd()
@@ -124,11 +125,11 @@ public OnCVarChange(Handle:convar, const String:oldValue[], const String:newValu
 {
 	if(convar == dr_Enabled) 
 		g_Enabled = GetConVarInt(dr_Enabled);
-	if(convar == dr_Outlines) 
+	else if(convar == dr_Outlines) 
 		g_Outlines = GetConVarInt(dr_Outlines);
-	if(convar == dr_MeleeOnly) 
+	else if(convar == dr_MeleeOnly) 
 		g_MeleeOnly = GetConVarInt(dr_MeleeOnly);
-	if(convar == dr_MeleeType) 
+	else if(convar == dr_MeleeType) 
 		g_MeleeType = GetConVarInt(dr_MeleeType);
 }
 
@@ -150,12 +151,14 @@ public OnMapStart()
 		LogMessage("Deathrun map detected. Enabling Deathrun Gamemode.");
 		g_isDRmap = true;
 		Steam_SetGameDescription("DeathRun Redux");
+		AddServerTag("deathrun");
 	}
  	else
 	{
 		LogMessage("Current map is not a deathrun map. Disabling Deathrun Gamemode.");
 		g_isDRmap = false;
 		Steam_SetGameDescription("Team Fortress");	
+		RemoveServerTag("deathrun");
 	}
 }
 
@@ -312,7 +315,7 @@ public Action:OnPlayerInventory(Handle:event, const String:name[], bool:dontBroa
 				TF2Items_SetQuality(hItem, 6);
 				TF2Items_SetAttribute(hItem, 0, 150, 1.0); //Turn to gold on kill
 				TF2Items_SetAttribute(hItem, 1, 542, 1.0); //Override Item Style
-				TF2Items_SetAttribute(hItem, 2, 2027, 1.0); //Is Autralium Item
+				TF2Items_SetAttribute(hItem, 2, 2027, 1.0); //Is Australium Item
 				TF2Items_SetAttribute(hItem, 3, 2022, 1.0); //Loot Rarity
 				TF2Items_SetNumAttributes(hItem, 4);
 				
@@ -411,7 +414,7 @@ stock BalanceTeams()
 	}
 	else
 	{
-		CPrintToChatAll("{black}[GS-DR]{DEFAULT} This gamemode requires at least two people to start");
+		CPrintToChatAll("{black}[GS-DR]{DEFAULT} This game-mode requires at least two people to start");
 	}
 }
 
@@ -493,16 +496,16 @@ public OnGameFrame()
 ** -------------------------------------------------------------------------- */
 stock TF2_SwitchtoSlot(client, slot)
 {
-        if (slot >= 0 && slot <= 5 && IsClientInGame(client) && IsPlayerAlive(client))
-        {
-                decl String:classname[64];
-                new wep = GetPlayerWeaponSlot(client, slot);
-                if (wep > MaxClients && IsValidEdict(wep) && GetEdictClassname(wep, classname, sizeof(classname)))
-                {
-                        FakeClientCommandEx(client, "use %s", classname);
-                        SetEntPropEnt(client, Prop_Send, "m_hActiveWeapon", wep);
-                }
-        }
+	if (slot >= 0 && slot <= 5 && IsClientInGame(client) && IsPlayerAlive(client))
+	{
+		decl String:classname[64];
+		new wep = GetPlayerWeaponSlot(client, slot);
+		if (wep > MaxClients && IsValidEdict(wep) && GetEdictClassname(wep, classname, sizeof(classname)))
+		{
+			FakeClientCommandEx(client, "use %s", classname);
+			SetEntPropEnt(client, Prop_Send, "m_hActiveWeapon", wep);
+		}
+	}
 }
 
 /* SetCloak()
@@ -578,7 +581,7 @@ public ResetCvars()
 	SetConVarInt(dr_push, dr_push_def);
 }
 
-/* OnPlayerSuicide()
+/* Command_Block()
 **
 ** Blocks a command
 ** -------------------------------------------------------------------------- */
