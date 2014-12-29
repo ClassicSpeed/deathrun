@@ -54,11 +54,11 @@ new dr_push_def = 0;
 // ---- Plugin's Information ---------------------------------------------------
 public Plugin:myinfo =
 {
-	name						= "[TF2] Deathrun Redux",
-	author					= "Classic",
+	name = "[TF2] Deathrun Redux",
+	author = "Classic",
 	description	= "Deathrun plugin for TF2",
-	version				= DR_VERSION,
-	url						= "http://www.clangs.com.ar"
+	version = DR_VERSION,
+	url = "http://www.clangs.com.ar"
 };
 
 /* OnPluginStart()
