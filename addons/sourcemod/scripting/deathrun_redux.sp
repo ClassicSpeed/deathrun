@@ -172,7 +172,7 @@ public OnMapStart()
 		g_isDRmap = true;
 		Steam_SetGameDescription("DeathRun Redux");
 		AddServerTag("deathrun");
-		for (new i = 0; i <= MaxClients; i++)
+		for (new i = 1; i <= MaxClients; i++)
 		{
 			if (!AreClientCookiesCached(i))
 				continue;
