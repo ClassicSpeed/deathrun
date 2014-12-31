@@ -9,7 +9,7 @@
 #include <steamtools>
 
 // ---- Defines ----------------------------------------------------------------
-#define DR_VERSION "0.1.4"
+#define DR_VERSION "0.1.5"
 #define PLAYERCOND_SPYCLOAK (1<<4)
 #define RUNNER_SPEED 300.0
 #define DEATH_SPEED 400.0
@@ -229,6 +229,28 @@ public Action:OnRoundStart(Handle:event, const String:name[], bool:dontBroadcast
 	}
 }
 
+/* TF2Items_OnGiveNamedItem_Post()
+**
+** Here we check for the demoshield and the sapper.
+** -------------------------------------------------------------------------- */
+public TF2Items_OnGiveNamedItem_Post(client, String:classname[], index, level, quality, ent)
+{
+	//tf_weapon_builder tf_wearable_demoshield
+	if(StrEqual(classname,"tf_weapon_builder", false) || StrEqual(classname,"tf_wearable_demoshield", false))
+		CreateTimer(0.1, Timer_RemoveWep, EntIndexToEntRef(ent));  
+}
+
+/* Timer_RemoveWep()
+**
+** We kill the demoshield/sapper
+** -------------------------------------------------------------------------- */
+public Action:Timer_RemoveWep(Handle:timer, any:ref)
+{
+	new ent = EntRefToEntIndex(ref);
+	if( IsValidEntity(ent) && ent > MaxClients)
+		AcceptEntityInput(ent, "Kill");
+}  
+
 /* OnPlayerInventory()
 **
 ** Here we strip players weapons (if we have to).
@@ -247,15 +269,13 @@ public Action:OnPlayerInventory(Handle:event, const String:name[], bool:dontBroa
 			TF2_RemoveWeaponSlot(client, TFWeaponSlot_Grenade);
 			TF2_RemoveWeaponSlot(client, TFWeaponSlot_Building);
 			TF2_RemoveWeaponSlot(client, TFWeaponSlot_PDA);
-			//TF2_RemoveWeaponSlot(client, TFWeaponSlot_Item1);
-			//TF2_RemoveWeaponSlot(client, TFWeaponSlot_Item2);
 			
 			//We kill the demomen's shield on this preparation.
-			new ent = -1;
+			/*new ent = -1;
 			while ((ent = FindEntityByClassname(ent, "tf_wearable_demoshield")) != -1)
 			{
 				AcceptEntityInput(ent, "kill");
-			}
+			}*/
 			if(g_MeleeType != 0)
 			{
 				TF2_RemoveWeaponSlot(client, TFWeaponSlot_Melee);
