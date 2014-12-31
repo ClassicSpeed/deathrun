@@ -7,6 +7,7 @@
 #include <tf2_stocks>
 #include <tf2items>
 #include <steamtools>
+#include <clientprefs>
 
 // ---- Defines ----------------------------------------------------------------
 #define DR_VERSION "0.1.5"
@@ -16,12 +17,21 @@
 #define MELEE_NUMBER 10
 new melee_vec[] =  {264 ,423 ,474, 880, 939, 954, 1013, 1071, 1123, 1127};
 // Frying Pan, Saxxy, The Conscientious Objector, The Freedom Staff, The Bat Outta Hell, The Memory Maker, The Ham Shank, Gold Frying Pan, The Necro Smasher, The Crossing Guard
+#define DBD_UNDEF -1 //DBD = Don't Be Death
+#define DBD_OFF 1
+#define DBD_ON 2
+#define DBD_THISMAP 3 // The cookie will never have this value
+#define TIME_TO_ASK 30.0 //Delay between asking the client its preferences and it's connection/join.
 
 // ---- Variables --------------------------------------------------------------
 new bool:g_isDRmap = false;
 new g_lastdeath = -1;
 new g_timesplayed_asdeath[MAXPLAYERS+1];
 new bool:g_onPreparation = false;
+new g_dontBeDeath[MAXPLAYERS+1] = {DBD_UNDEF,...};
+
+// ---- Handles ----------------------------------------------------------------
+new Handle:g_DRCookie = INVALID_HANDLE;
 
 // ---- Plugin's CVars Management ----------------------------------------------
 new g_Enabled;
@@ -106,7 +116,15 @@ public OnPluginStart()
 	AddCommandListener(Command_Block,"explode");
 	
 	AutoExecConfig(true, "plugin.deathrun_redux");
-
+	
+	//Preferences
+	g_DRCookie = RegClientCookie("DR_dontBeDeath", "Does the client want to be the Deaht?", CookieAccess_Private);
+	for (new i = 0; i <= MaxClients; i++)
+	{
+		if (!AreClientCookiesCached(i))
+			continue;
+		OnClientCookiesCached(i);
+	}
 }
 
 /* OnPluginEnd()
@@ -117,6 +135,7 @@ public OnPluginEnd()
 {
 	ResetCvars();
 }
+
 /* OnCVarChange()
 **
 ** We edit the global variables values when their corresponding cvar changes.
@@ -152,6 +171,12 @@ public OnMapStart()
 		g_isDRmap = true;
 		Steam_SetGameDescription("DeathRun Redux");
 		AddServerTag("deathrun");
+		for (new i = 0; i <= MaxClients; i++)
+		{
+			if (!AreClientCookiesCached(i))
+				continue;
+			OnClientCookiesCached(i);
+		}
 	}
  	else
 	{
@@ -169,6 +194,10 @@ public OnMapStart()
 public OnMapEnd()
 {
 	ResetCvars();
+	for (new i = 0; i <= MaxClients; i++)
+	{
+		g_dontBeDeath[i] = DBD_UNDEF;
+	}
 }
 
 /* OnClientPutInServer()
@@ -184,10 +213,82 @@ public OnClientPutInServer(client)
 **
 ** We set as minus one the time played as death when the client leaves.
 ** When searching for a Death we ignore every client with the -1 value.
+** We also set as undef the preference value
 ** -------------------------------------------------------------------------- */
 public OnClientDisconnect(client)
 {
 	g_timesplayed_asdeath[client] =-1;
+	g_dontBeDeath[client] = DBD_UNDEF;
+}
+
+/* OnClientCookiesCached()
+**
+** We look if the client have a saved value
+** -------------------------------------------------------------------------- */
+public OnClientCookiesCached(client)
+{
+	decl String:sValue[8];
+	GetClientCookie(client, g_DRCookie, sValue, sizeof(sValue));
+	new nValue = StringToInt(sValue);
+
+	if( nValue != DBD_OFF && nValue != DBD_ON) //If cookie is not valid we ask for a preference.
+		CreateTimer(TIME_TO_ASK, AskMenuTimer, client);
+	else //client has a valid cookie
+		g_dontBeDeath[client] = nValue;
+}
+
+public Action:AskMenuTimer(Handle:timer, any:client)
+{
+	BeDeathMenu(client);
+}
+
+public Action:BeDeathMenu(client)
+{
+	if (client == 0 || (!IsClientInGame(client)))
+	{
+		return Plugin_Handled;
+	}
+	new Handle:menu = CreateMenu(BeDeathMenuHandler);
+	SetMenuTitle(menu, "Be the Death toggle");
+	AddMenuItem(menu, "0", "Select me as Death");
+	AddMenuItem(menu, "1", "Don't select me as Death");
+	AddMenuItem(menu, "2", "Don't be Death in this map");
+	SetMenuExitButton(menu, true);
+	DisplayMenu(menu, client, 30);
+	
+	return Plugin_Handled;
+}
+
+public BeDeathMenuHandler(Handle:menu, MenuAction:action, client, buttonnum)
+{
+	if (action == MenuAction_Select)
+	{
+		if (buttonnum == 0)
+		{
+			g_dontBeDeath[client] = DBD_OFF;
+			decl String:sPref[2];
+			IntToString(DBD_OFF, sPref, sizeof(sPref));
+			SetClientCookie(client, g_DRCookie, sPref);
+			CPrintToChat(client,"{black}[DR]{DEFAULT} You can be selected as Death.");
+		}
+		else if (buttonnum == 1)
+		{
+			g_dontBeDeath[client] = DBD_ON;
+			decl String:sPref[2];
+			IntToString(DBD_ON, sPref, sizeof(sPref));
+			SetClientCookie(client, g_DRCookie, sPref);
+			CPrintToChat(client,"{black}[DR]{DEFAULT} You can't be selected as Death.");
+		}
+		else if (buttonnum == 2)
+		{
+			g_dontBeDeath[client] = DBD_THISMAP;
+			CPrintToChat(client,"{black}[DR]{DEFAULT} You can't be selected as Death for this map.");
+		}
+	}
+	else if (action == MenuAction_End)
+	{
+		CloseHandle(menu);
+	}
 }
 
 /* OnPrepartionStart()
@@ -395,7 +496,7 @@ stock BalanceTeams()
 		new new_death = GetRandomValid();
 		if(new_death == -1)
 		{
-			CPrintToChatAll("{black}[GS-DR]{DEFAULT} Couldn't found a valid Death.");
+			CPrintToChatAll("{black}[DR]{DEFAULT} Couldn't found a valid Death.");
 			return;
 		}
 		g_lastdeath  = new_death;
@@ -424,17 +525,17 @@ stock BalanceTeams()
 		}
 		if(!IsClientConnected(new_death) || !IsClientInGame(new_death)) 
 		{
-			CPrintToChatAll("{black}[GS-DR]{DEFAULT} Death isn't in game.");
+			CPrintToChatAll("{black}[DR]{DEFAULT} Death isn't in game.");
 			return;
 		}
 		
-		CPrintToChatAll("{black}[GS-DR]{gold}%N {DEFAULT}is the Death", new_death);
+		CPrintToChatAll("{black}[DR]{gold}%N {DEFAULT}is the Death", new_death);
 		g_timesplayed_asdeath[g_lastdeath]++;
 
 	}
 	else
 	{
-		CPrintToChatAll("{black}[GS-DR]{DEFAULT} This game-mode requires at least two people to start");
+		CPrintToChatAll("{black}[DR]{DEFAULT} This game-mode requires at least two people to start");
 	}
 }
 
@@ -447,6 +548,48 @@ public GetRandomValid()
 	new possiblePlayers[MAXPLAYERS+1];
 	new possibleNumber = 0;
 	
+	new min = GetMinTimesPlayed(false);
+	for(new i = 1; i <= MaxClients; i++)
+	{
+		if(!IsClientConnected(i) || !IsClientInGame(i) || IsFakeClient(i))
+			continue;
+		if(g_timesplayed_asdeath[i] != min)
+			continue;
+		if(g_dontBeDeath[i] == DBD_ON || g_dontBeDeath[i] == DBD_THISMAP)
+			continue;
+		
+		possiblePlayers[possibleNumber] = i;
+		possibleNumber++;
+		
+	}
+	
+	//If there are zero people available we ignore the preferences.
+	if(possibleNumber == 0)
+	{
+		min = GetMinTimesPlayed(true);
+		for(new i = 1; i <= MaxClients; i++)
+		{
+			if(!IsClientConnected(i) || !IsClientInGame(i) || IsFakeClient(i))
+				continue;
+			if(g_timesplayed_asdeath[i] != min)
+				continue;			
+			possiblePlayers[possibleNumber] = i;
+			possibleNumber++;
+		}
+		if(possibleNumber == 0)
+			return -1;
+	}
+	
+	return possiblePlayers[ GetRandomInt(0,possibleNumber-1)];
+
+}
+
+/* GetMinTimesPlayed()
+**
+** Get the minimum "times played", if ignorePref is true, we ignore the don't be death preference
+** -------------------------------------------------------------------------- */
+GetMinTimesPlayed(bool:ignorePref)
+{
 	new min = -1;
 	for(new i = 1; i <= MaxClients; i++)
 	{
@@ -454,6 +597,9 @@ public GetRandomValid()
 			continue;
 		if(i == g_lastdeath) 
 			continue;
+		if(!ignorePref)
+			if(g_dontBeDeath[i] == DBD_ON || g_dontBeDeath[i] == DBD_THISMAP)
+				continue;
 		if(min == -1)
 			min = g_timesplayed_asdeath[i];
 		else
@@ -461,23 +607,7 @@ public GetRandomValid()
 				min = g_timesplayed_asdeath[i];
 		
 	}
-	for(new i = 1; i <= MaxClients; i++)
-	{
-		if(!IsClientConnected(i) || !IsClientInGame(i) || IsFakeClient(i))
-			continue;
-		
-		if(g_timesplayed_asdeath[i] != min)
-			continue;
-
-		possiblePlayers[possibleNumber] = i;
-		possibleNumber++;
-		
-		
-	}
-	if(possibleNumber == 0)
-		return -1;
-	else
-		return possiblePlayers[ GetRandomInt(0,possibleNumber-1)];
+	return min;
 
 }
 
