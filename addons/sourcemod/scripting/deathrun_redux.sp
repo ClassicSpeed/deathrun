@@ -119,12 +119,13 @@ public OnPluginStart()
 	
 	//Preferences
 	g_DRCookie = RegClientCookie("DR_dontBeDeath", "Does the client want to be the Deaht?", CookieAccess_Private);
-	for (new i = 0; i <= MaxClients; i++)
+	for (new i = 1; i <= MaxClients; i++)
 	{
 		if (!AreClientCookiesCached(i))
 			continue;
 		OnClientCookiesCached(i);
 	}
+	RegConsoleCmd( "drtoggle",  BeDeathMenu);
 }
 
 /* OnPluginEnd()
@@ -194,7 +195,7 @@ public OnMapStart()
 public OnMapEnd()
 {
 	ResetCvars();
-	for (new i = 0; i <= MaxClients; i++)
+	for (new i = 1; i <= MaxClients; i++)
 	{
 		g_dontBeDeath[i] = DBD_UNDEF;
 	}
@@ -239,10 +240,10 @@ public OnClientCookiesCached(client)
 
 public Action:AskMenuTimer(Handle:timer, any:client)
 {
-	BeDeathMenu(client);
+	BeDeathMenu(client,0);
 }
 
-public Action:BeDeathMenu(client)
+public Action:BeDeathMenu(client,args)
 {
 	if (client == 0 || (!IsClientInGame(client)))
 	{
@@ -336,9 +337,12 @@ public Action:OnRoundStart(Handle:event, const String:name[], bool:dontBroadcast
 ** -------------------------------------------------------------------------- */
 public TF2Items_OnGiveNamedItem_Post(client, String:classname[], index, level, quality, ent)
 {
-	//tf_weapon_builder tf_wearable_demoshield
-	if(StrEqual(classname,"tf_weapon_builder", false) || StrEqual(classname,"tf_wearable_demoshield", false))
-		CreateTimer(0.1, Timer_RemoveWep, EntIndexToEntRef(ent));  
+	if(g_isDRmap && g_Enabled)
+	{
+		//tf_weapon_builder tf_wearable_demoshield
+		if(StrEqual(classname,"tf_weapon_builder", false) || StrEqual(classname,"tf_wearable_demoshield", false))
+			CreateTimer(0.1, Timer_RemoveWep, EntIndexToEntRef(ent));  
+	}
 }
 
 /* Timer_RemoveWep()
