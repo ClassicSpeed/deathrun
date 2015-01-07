@@ -118,7 +118,7 @@ public OnPluginStart()
 	AutoExecConfig(true, "plugin.deathrun_redux");
 	
 	//Preferences
-	g_DRCookie = RegClientCookie("DR_dontBeDeath", "Does the client want to be the Deaht?", CookieAccess_Private);
+	g_DRCookie = RegClientCookie("DR_dontBeDeath", "Does the client want to be the Death?", CookieAccess_Private);
 	for (new i = 1; i <= MaxClients; i++)
 	{
 		if (!AreClientCookiesCached(i))
