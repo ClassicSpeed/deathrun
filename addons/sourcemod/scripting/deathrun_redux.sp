@@ -7,6 +7,7 @@
 #include <tf2_stocks>
 #include <tf2items>
 #include <steamtools>
+#include <tf2attributes>
 #include <clientprefs>
 
 // ---- Defines ----------------------------------------------------------------
@@ -16,11 +17,7 @@
 
 #define TEAM_RED 2
 #define TEAM_BLUE 3
-//#define RUNNER_SPEED 300.0
-//#define DEATH_SPEED 400.0
-//#define MELEE_NUMBER 10
-//new melee_vec[] =  {264 ,423 ,474, 880, 939, 954, 1013, 1071, 1123, 1127};
-// Frying Pan, Saxxy, The Conscientious Objector, The Freedom Staff, The Bat Outta Hell, The Memory Maker, The Ham Shank, Gold Frying Pan, The Necro Smasher, The Crossing Guard
+
 #define DBD_UNDEF -1 //DBD = Don't Be Death
 #define DBD_OFF 1
 #define DBD_ON 2
@@ -64,22 +61,9 @@ new Handle:g_SndOnKill;
 new Handle:g_SndLastAlive;
 
 
-
 // ---- Handles ----------------------------------------------------------------
 new Handle:g_DRCookie = INVALID_HANDLE;
 
-// ---- Plugin's CVars Management ----------------------------------------------
-/*
-new g_Enabled;
-new g_Outlines;
-new g_MeleeOnly;
-new g_MeleeType;
-
-new Handle:dr_Enabled;
-new Handle:dr_Outlines;
-new Handle:dr_MeleeOnly;
-new Handle:dr_MeleeType;
-*/
 // ---- Server's CVars Management ----------------------------------------------
 new Handle:dr_queue;
 new Handle:dr_unbalance;
@@ -115,20 +99,6 @@ public OnPluginStart()
 {
 	//Cvars
 	CreateConVar("sm_dr_version", DR_VERSION, "Death Run Redux Version.", FCVAR_REPLICATED | FCVAR_PLUGIN | FCVAR_SPONLY | FCVAR_DONTRECORD | FCVAR_NOTIFY);
-	/*
-	dr_Enabled = CreateConVar("sm_dr_enabled",	"1", "Enables / Disables the Death Run Redux plugin.", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	dr_Outlines = CreateConVar("sm_dr_outlines",	"1", "Enables / Disables ability to players from runners team be seen throught walls by outline", FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	dr_MeleeOnly = CreateConVar("sm_dr_melee_only",	"1", "Enables / Disables the exclusive use of melee weapons",FCVAR_PLUGIN, true, 0.0, true, 1.0);
-	dr_MeleeType = CreateConVar("sm_dr_melee_type",	"1", "Type of melee restriction. 0: No restriction. 1: Gives default weapon to player's class.\n2: Gives all-class weapons. Only works if sm_dr_melee_only is in 1.",FCVAR_PLUGIN, true, 0.0, true, 2.0);
-	*/
-	
-	//Defaults variables values
-	/*
-	g_Enabled = GetConVarInt(dr_Enabled);
-	g_Outlines = GetConVarInt(dr_Outlines);
-	g_MeleeOnly = GetConVarInt(dr_MeleeOnly);
-	g_MeleeType = GetConVarInt(dr_MeleeType);
-	*/
 	
 	//Creation of Tries
 	g_RestrictedWeps = CreateTrie();
@@ -148,14 +118,6 @@ public OnPluginStart()
 	dr_scrambleauto = FindConVar("mp_scrambleteams_auto");
 	dr_airdash = FindConVar("tf_scout_air_dash_count");
 	dr_push = FindConVar("tf_avoidteammates_pushaway");
-	
-	//Cvars's hook
-	/*
-	HookConVarChange(dr_Enabled, OnCVarChange);
-	HookConVarChange(dr_Outlines, OnCVarChange);
-	HookConVarChange(dr_MeleeOnly, OnCVarChange);
-	HookConVarChange(dr_MeleeType, OnCVarChange);
-	*/
 
 	//Hooks
 	HookEvent("teamplay_round_start", OnPrepartionStart);
@@ -163,12 +125,6 @@ public OnPluginStart()
 	HookEvent("post_inventory_application", OnPlayerInventory);
 	HookEvent("player_spawn", OnPlayerSpawn);
 	HookEvent("player_death", OnPlayerDeath, EventHookMode_Post);
-	
-	//AddCommandListener(Command_Block,"build");
-	//AddCommandListener(Command_Block,"kill");
-	//AddCommandListener(Command_Play1,"explode");
-	
-	//AutoExecConfig(true, "plugin.deathrun_redux");
 	
 	//Preferences
 	g_DRCookie = RegClientCookie("DR_dontBeDeath", "Does the client want to be the Death?", CookieAccess_Private);
@@ -190,23 +146,6 @@ public OnPluginEnd()
 	ResetCvars();
 }
 
-/* OnCVarChange()
-**
-** We edit the global variables values when their corresponding cvar changes.
-** -------------------------------------------------------------------------- */
-/*
-public OnCVarChange(Handle:convar, const String:oldValue[], const String:newValue[])
-{
-	if(convar == dr_Enabled) 
-		g_Enabled = GetConVarInt(dr_Enabled);
-	else if(convar == dr_Outlines) 
-		g_Outlines = GetConVarInt(dr_Outlines);
-	else if(convar == dr_MeleeOnly) 
-		g_MeleeOnly = GetConVarInt(dr_MeleeOnly);
-	else if(convar == dr_MeleeType) 
-		g_MeleeType = GetConVarInt(dr_MeleeType);
-}
-*/
 
 /* OnMapStart()
 **
@@ -750,7 +689,8 @@ public Action:OnPlayerInventory(Handle:event, const String:name[], bool:dontBroa
 					replacewep=true;
 				else
 				{
-					new wepIndex = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
+					new wepEnt = GetPlayerWeaponSlot(client, TFWeaponSlot_Melee);
+					new wepIndex = GetEntProp(wepEnt, Prop_Send, "m_iItemDefinitionIndex"); 
 					new rwSize = GetTrieSize(g_RestrictedWeps);
 					new String:key[4], auxIndex;
 					for(new i = 1; i <= rwSize; i++)
@@ -854,9 +794,9 @@ public Action:OnPlayerInventory(Handle:event, const String:name[], bool:dontBroa
 					CloseHandle(hItem);
 					
 					EquipPlayerWeapon(client, iWeapon);
-					TF2_SwitchtoSlot(client, TFWeaponSlot_Melee);
 				}
 			}
+			TF2_SwitchtoSlot(client, TFWeaponSlot_Melee);
 		}
 	}
 }
@@ -870,6 +810,8 @@ public Action:OnPlayerSpawn(Handle:event, const String:name[], bool:dontBroadcas
 	if(g_isDRmap)
 	{
 		new client = GetClientOfUserId(GetEventInt(event, "userid"));
+		if(g_diablefalldamage)
+			TF2Attrib_SetByName(client, "cancel falling damage", 1.0);
 		if((GetClientTeam(client) == TEAM_RED && g_runner_outline == 0)||(GetClientTeam(client) == TEAM_BLUE && g_death_outline == 0))
 		{
 			SetEntProp(client, Prop_Send, "m_bGlowEnabled", 1);
@@ -900,7 +842,7 @@ public Action:OnPlayerSpawn(Handle:event, const String:name[], bool:dontBroadcas
 
 /* OnPlayerDeath()
 **
-** Here we reproduce sounds if needed
+** Here we reproduce sounds if needed and activate the glow effect if needed
 ** -------------------------------------------------------------------------- */
 public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcast)
 {
@@ -923,6 +865,16 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 				g_canEmitSoundToDeath = false;
 				CreateTimer(g_OnKillDelay, ReenableDeathSound);
 			}
+			
+			if(aliveRunners == g_runner_outline)
+				for(new i=1 ; i<=MaxClients ; i++)
+					if(IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(client) == TEAM_RED)
+						SetEntProp(i, Prop_Send, "m_bGlowEnabled", 1);
+					
+			if(aliveRunners == g_death_outline)
+				for(new i=1 ; i<=MaxClients ; i++)
+					if(IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(client) == TEAM_BLUE)
+						SetEntProp(i, Prop_Send, "m_bGlowEnabled", 1);
 			
 		}
 		
