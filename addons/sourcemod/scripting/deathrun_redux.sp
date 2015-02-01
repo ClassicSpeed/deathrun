@@ -632,7 +632,11 @@ public Action:OnRoundStart(Handle:event, const String:name[], bool:dontBroadcast
 	{
 		for(new i = 1; i <= MaxClients; i++)
 			if(IsClientInGame(i) && IsPlayerAlive(i))
+			{
 					SetEntityMoveType(i, MOVETYPE_WALK);
+					if((GetClientTeam(i) == TEAM_RED && g_runner_outline == 0)||(GetClientTeam(i) == TEAM_BLUE && g_death_outline == 0))
+						SetEntProp(i, Prop_Send, "m_bGlowEnabled", 1);	
+			}
 		g_onPreparation = false;
 	}
 }
@@ -812,11 +816,12 @@ public Action:OnPlayerSpawn(Handle:event, const String:name[], bool:dontBroadcas
 		new client = GetClientOfUserId(GetEventInt(event, "userid"));
 		if(g_diablefalldamage)
 			TF2Attrib_SetByName(client, "cancel falling damage", 1.0);
+		/*
 		if((GetClientTeam(client) == TEAM_RED && g_runner_outline == 0)||(GetClientTeam(client) == TEAM_BLUE && g_death_outline == 0))
 		{
 			SetEntProp(client, Prop_Send, "m_bGlowEnabled", 1);
 		}
-		
+		*/
 		if(g_MeleeOnly)
 		{
 			new cond = GetEntProp(client, Prop_Send, "m_nPlayerCond");
