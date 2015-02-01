@@ -11,7 +11,7 @@
 #include <clientprefs>
 
 // ---- Defines ----------------------------------------------------------------
-#define DR_VERSION "0.1.6"
+#define DR_VERSION "0.1.7"
 #define PLAYERCOND_SPYCLOAK (1<<4)
 #define MAXGENERIC 25	//Used as a limit in the config file
 
@@ -908,28 +908,31 @@ stock BalanceTeams()
 			return;
 		}
 		g_lastdeath  = new_death;
-		
+		new team;
 		for(new i = 1; i <= MaxClients; i++)
 		{
-			if(IsClientInGame(i) && IsClientConnected(i))
+			if(!IsClientConnected(i) || !IsClientInGame(i))
+				continue;
+			team = GetClientTeam(i);
+			if(team != TEAM_BLUE && team != TEAM_RED)
+				continue;
+				
+			if(i == new_death)
 			{
-				if(i == new_death)
+				if(team != TEAM_BLUE)
+				ChangeClientTeam(i, TEAM_BLUE);
+				
+				new TFClassType:iClass = TF2_GetPlayerClass(i);
+				if (iClass == TFClass_Unknown)
 				{
-					if(GetClientTeam(i) != TEAM_BLUE)
-					ChangeClientTeam(i, TEAM_BLUE);
-					
-					new TFClassType:iClass = TF2_GetPlayerClass(i);
-					if (iClass == TFClass_Unknown)
-					{
-						TF2_SetPlayerClass(i, TFClass_Scout, false, true);
-					}
+					TF2_SetPlayerClass(i, TFClass_Scout, false, true);
 				}
-				else if(GetClientTeam(i) != TEAM_RED )
-				{
-					ChangeClientTeam(i, TEAM_RED);
-				}
-				CreateTimer(0.2, RespawnRebalanced,  GetClientUserId(i));
 			}
+			else if(team != TEAM_RED )
+			{
+				ChangeClientTeam(i, TEAM_RED);
+			}
+			CreateTimer(0.2, RespawnRebalanced,  GetClientUserId(i));
 		}
 		if(!IsClientConnected(new_death) || !IsClientInGame(new_death)) 
 		{
@@ -955,11 +958,14 @@ public GetRandomValid()
 {
 	new possiblePlayers[MAXPLAYERS+1];
 	new possibleNumber = 0;
-	
+	new team;
 	new min = GetMinTimesPlayed(false);
 	for(new i = 1; i <= MaxClients; i++)
 	{
 		if(!IsClientConnected(i) || !IsClientInGame(i))
+			continue;
+		team = GetClientTeam(i);
+		if(team != TEAM_BLUE && team != TEAM_RED)
 			continue;
 		if(g_timesplayed_asdeath[i] != min)
 			continue;
