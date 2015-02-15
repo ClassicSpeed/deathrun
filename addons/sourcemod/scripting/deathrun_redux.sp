@@ -11,7 +11,7 @@
 #include <clientprefs>
 
 // ---- Defines ----------------------------------------------------------------
-#define DR_VERSION "0.1.7"
+#define DR_VERSION "0.2.0"
 #define PLAYERCOND_SPYCLOAK (1<<4)
 #define MAXGENERIC 25	//Used as a limit in the config file
 
@@ -834,7 +834,7 @@ public Action:OnPlayerSpawn(Handle:event, const String:name[], bool:dontBroadcas
 		
 		if(GetClientTeam(client) == TEAM_BLUE && client != g_lastdeath)
 		{
-			ChangeClientTeam(client, TEAM_RED);
+			ChangeAliveClientTeam(client, TEAM_RED);
 			CreateTimer(0.2, RespawnRebalanced,  GetClientUserId(client));
 		}
 		
@@ -866,7 +866,9 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 				
 			if(g_canEmitSoundToDeath)
 			{
-				EmitRandomSound(g_SndOnKill,GetLastPlayer(TEAM_BLUE));
+				new currentDeath = GetLastPlayer(TEAM_BLUE);
+				if(currentDeath > 0 && currentDeath <= MaxClients)
+					EmitRandomSound(g_SndOnKill,currentDeath);
 				g_canEmitSoundToDeath = false;
 				CreateTimer(g_OnKillDelay, ReenableDeathSound);
 			}
@@ -920,7 +922,7 @@ stock BalanceTeams()
 			if(i == new_death)
 			{
 				if(team != TEAM_BLUE)
-				ChangeClientTeam(i, TEAM_BLUE);
+				ChangeAliveClientTeam(i, TEAM_BLUE);
 				
 				new TFClassType:iClass = TF2_GetPlayerClass(i);
 				if (iClass == TFClass_Unknown)
@@ -930,7 +932,7 @@ stock BalanceTeams()
 			}
 			else if(team != TEAM_RED )
 			{
-				ChangeClientTeam(i, TEAM_RED);
+				ChangeAliveClientTeam(i, TEAM_RED);
 			}
 			CreateTimer(0.2, RespawnRebalanced,  GetClientUserId(i));
 		}
@@ -984,6 +986,9 @@ public GetRandomValid()
 		for(new i = 1; i <= MaxClients; i++)
 		{
 			if(!IsClientConnected(i) || !IsClientInGame(i) )
+				continue;
+			team = GetClientTeam(i);
+			if(team != TEAM_BLUE && team != TEAM_RED)
 				continue;
 			if(g_timesplayed_asdeath[i] != min)
 				continue;			
@@ -1218,3 +1223,16 @@ stock GetLastPlayer(team,ignore=-1)
 			return i;
 	return -1;
 }  
+
+stock ChangeAliveClientTeam(client, newTeam)
+{
+	new oldTeam = GetClientTeam(client);
+
+	if (oldTeam != newTeam)
+	{
+		SetEntProp(client, Prop_Send, "m_lifeState", 2);
+		ChangeClientTeam(client, newTeam);
+		SetEntProp(client, Prop_Send, "m_lifeState", 0);
+		TF2_RespawnPlayer(client);
+	}
+}
