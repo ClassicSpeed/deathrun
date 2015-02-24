@@ -160,7 +160,7 @@ public OnMapStart()
 			
 	decl String:mapname[128];
 	GetCurrentMap(mapname, sizeof(mapname));
-	if (strncmp(mapname, "dr_", 3, false) == 0 || strncmp(mapname, "deathrun_", 9, false) == 0 || strncmp(mapname, "vsh_dr", 6, false) == 0 || strncmp(mapname, "vsh_deathrun", 6, false) == 0)
+	if (strncmp(mapname, "dr_", 3, false) == 0 || strncmp(mapname, "deathrun_", 9, false) == 0 || strncmp(mapname, "vsh_dr_", 6, false) == 0 || strncmp(mapname, "vsh_deathrun_", 6, false) == 0)
 	{
 		LogMessage("Deathrun map detected. Enabling Deathrun Gamemode.");
 		g_isDRmap = true;
