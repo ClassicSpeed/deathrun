@@ -50,8 +50,9 @@ new bool:g_UseAllClass;
 new Handle:g_AllClassWeps;
 
 //Command-config
-new Handle:g_CommandToBlock;
-new Handle:g_BlockOnlyOnPreparation;
+new Handle:g_CmdList;
+new Handle:g_CmdTeamToBlock;
+new Handle:g_CmdBlockOnlyOnPrep;
 
 //Sound-config
 new Handle:g_SndRoundStart;
@@ -103,8 +104,9 @@ public OnPluginStart()
 	//Creation of Tries
 	g_RestrictedWeps = CreateTrie();
 	g_AllClassWeps = CreateTrie();
-	g_CommandToBlock = CreateTrie();
-	g_BlockOnlyOnPreparation = CreateTrie();
+	g_CmdList = CreateTrie();
+	g_CmdTeamToBlock = CreateTrie();
+	g_CmdBlockOnlyOnPrep = CreateTrie();
 	g_SndRoundStart = CreateTrie();
 	g_SndOnDeath = CreateTrie();
 	g_SndOnKill = CreateTrie();
@@ -222,8 +224,9 @@ LoadConfigs()
 	ClearTrie(g_AllClassWeps);
 
 	//Command-config
-	ClearTrie(g_CommandToBlock);
-	ClearTrie(g_BlockOnlyOnPreparation);
+	ClearTrie(g_CmdList);
+	ClearTrie(g_CmdTeamToBlock);
+	ClearTrie(g_CmdBlockOnlyOnPrep);
 
 	//Sound-config
 	ClearTrie(g_SndRoundStart);
@@ -323,17 +326,29 @@ LoadConfigs()
 	KvJumpToKey(hDR,"blockcommands");
 	do
 	{
-		decl String:SectionName[128],String:CommandName[128],bool:onprep;
+		decl String:SectionName[128], String:CommandName[128];
+		new onprep, bool:onrunners, bool:ondeath, teamToBlock;
 		KvGotoFirstSubKey(hDR);
 		KvGetSectionName(hDR, SectionName, sizeof(SectionName));
 		
 		KvGetString(hDR, "command", CommandName, sizeof(CommandName));
-		onprep = bool:KvGetNum(hDR, "OnlyOnPreparation", 0);
+		onprep = KvGetNum(hDR, "OnlyOnPreparation", 0);
+		onrunners = !!KvGetNum(hDR,"runners",1);
+		ondeath = !!KvGetNum(hDR,"death",1);
 		
-		if(!StrEqual(CommandName, ""))
+		teamToBlock = 0;
+		if((onrunners && ondeath))
+			teamToBlock = 1;
+		else if(onrunners && !ondeath)
+			teamToBlock = TEAM_RED;
+		else if(!onrunners && ondeath)
+			teamToBlock = TEAM_BLUE;
+		
+		if(!StrEqual(CommandName, "") || teamToBlock == 0)
 		{
-			SetTrieString(g_CommandToBlock,SectionName,CommandName);
-			SetTrieValue(g_BlockOnlyOnPreparation,SectionName,_:onprep);
+			SetTrieString(g_CmdList,SectionName,CommandName);
+			SetTrieValue(g_CmdBlockOnlyOnPrep,CommandName,onprep);
+			SetTrieValue(g_CmdTeamToBlock,CommandName,teamToBlock);
 		}
 	}
 	while(KvGotoNextKey(hDR));
@@ -475,17 +490,23 @@ PrecacheSoundFromTrie(Handle:sndTrie)
 ** -------------------------------------------------------------------------- */
 ProcessListeners(bool:removeListerners=false)
 {
-	new trieSize = GetTrieSize(g_CommandToBlock);
-	decl String:command[PLATFORM_MAX_PATH],String:key[4],PreparationOnly;
+	new trieSize = GetTrieSize(g_CmdList);
+	decl String:command[PLATFORM_MAX_PATH],String:key[4];
 	for(new i = 1; i <= trieSize; i++)
 	{
 		IntToString(i,key,sizeof(key));
-		if(GetTrieString(g_CommandToBlock,key,command, sizeof(command)))
+		if(GetTrieString(g_CmdList,key,command, sizeof(command)))
 		{
 			if(StrEqual(command, ""))
 					break;		
 					
-			GetTrieValue(g_BlockOnlyOnPreparation,key,PreparationOnly);
+			if(removeListerners)	
+				RemoveCommandListener(Command_Block,command);
+			else 
+				AddCommandListener(Command_Block,command);
+				
+			/*		
+			GetTrieValue(g_CmdBlockOnlyOnPrep,key,PreparationOnly);
 			if(removeListerners)
 			{
 				if(PreparationOnly == 1)
@@ -499,7 +520,7 @@ ProcessListeners(bool:removeListerners=false)
 					AddCommandListener(Command_Block_PreparationOnly,command);
 				else
 					AddCommandListener(Command_Block,command);
-			}
+			}*/
 			
 			
 		}
@@ -1146,8 +1167,9 @@ public ResetCvars()
 	ProcessListeners(true);
 	ClearTrie(g_RestrictedWeps);
 	ClearTrie(g_AllClassWeps);
-	ClearTrie(g_CommandToBlock);
-	ClearTrie(g_BlockOnlyOnPreparation);
+	ClearTrie(g_CmdList);
+	ClearTrie(g_CmdTeamToBlock);
+	ClearTrie(g_CmdBlockOnlyOnPrep);
 	ClearTrie(g_SndRoundStart);
 	ClearTrie(g_SndOnDeath);
 	ClearTrie(g_SndOnKill);
@@ -1156,25 +1178,38 @@ public ResetCvars()
 
 /* Command_Block()
 **
-** Blocks a command
+** Blocks a command, check teams and if it's on preparation.
 ** -------------------------------------------------------------------------- */
 public Action:Command_Block(client, const String:command[], argc)
 {
 	if(g_isDRmap)
-		return Plugin_Stop;
+	{
+		new PreparationOnly, blockteam;
+		GetTrieValue(g_CmdBlockOnlyOnPrep,command,PreparationOnly);
+		//If the command must be blocked only on preparation 
+		//and we aren't on preparation time, we let the client run the command.
+		if(!g_onPreparation && PreparationOnly == 0)
+			return Plugin_Continue;
+		
+		GetTrieValue(g_CmdTeamToBlock,command,blockteam);
+		//If the client has the same team as "g_CmdTeamToBlock" 
+		//or it's for both teams, we block the command.
+		if(GetClientTeam(client) == blockteam  || blockteam == 1)			return Plugin_Stop;
+		
+	}
 	return Plugin_Continue;
 }
 
 /* Command_Block_PreparationOnly()
 **
 ** Blocks a command, but only if we are on preparation 
-** -------------------------------------------------------------------------- */
+** -------------------------------------------------------------------------- *//*
 public Action:Command_Block_PreparationOnly(client, const String:command[], argc)
 {
 	if(g_isDRmap && g_onPreparation)
 		return Plugin_Stop;
 	return Plugin_Continue;
-}
+}*/
 
 
 /* EmitRandomSound()
