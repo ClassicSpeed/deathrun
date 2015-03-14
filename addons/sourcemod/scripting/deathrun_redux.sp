@@ -670,7 +670,6 @@ public TF2Items_OnGiveNamedItem_Post(client, String:classname[], index, level, q
 {
 	if(g_isDRmap && g_MeleeOnly)
 	{
-		//tf_weapon_builder tf_wearable_demoshield
 		if(StrEqual(classname,"tf_weapon_builder", false) || StrEqual(classname,"tf_wearable_demoshield", false))
 			CreateTimer(0.1, Timer_RemoveWep, EntIndexToEntRef(ent));  
 	}
@@ -837,12 +836,6 @@ public Action:OnPlayerSpawn(Handle:event, const String:name[], bool:dontBroadcas
 		new client = GetClientOfUserId(GetEventInt(event, "userid"));
 		if(g_diablefalldamage)
 			TF2Attrib_SetByName(client, "cancel falling damage", 1.0);
-		/*
-		if((GetClientTeam(client) == TEAM_RED && g_runner_outline == 0)||(GetClientTeam(client) == TEAM_BLUE && g_death_outline == 0))
-		{
-			SetEntProp(client, Prop_Send, "m_bGlowEnabled", 1);
-		}
-		*/
 		if(g_MeleeOnly)
 		{
 			new cond = GetEntProp(client, Prop_Send, "m_nPlayerCond");
@@ -885,14 +878,16 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 			if(aliveRunners == 1)
 				EmitRandomSound(g_SndLastAlive,GetLastPlayer(TEAM_RED,client));
 				
+			new currentDeath = GetLastPlayer(TEAM_BLUE);
+			SetEventInt(event,"attacker",currentDeath);
 			if(g_canEmitSoundToDeath)
 			{
-				new currentDeath = GetLastPlayer(TEAM_BLUE);
 				if(currentDeath > 0 && currentDeath <= MaxClients)
 					EmitRandomSound(g_SndOnKill,currentDeath);
 				g_canEmitSoundToDeath = false;
 				CreateTimer(g_OnKillDelay, ReenableDeathSound);
 			}
+			
 			
 			if(aliveRunners == g_runner_outline)
 				for(new i=1 ; i<=MaxClients ; i++)
@@ -1199,17 +1194,6 @@ public Action:Command_Block(client, const String:command[], argc)
 	}
 	return Plugin_Continue;
 }
-
-/* Command_Block_PreparationOnly()
-**
-** Blocks a command, but only if we are on preparation 
-** -------------------------------------------------------------------------- *//*
-public Action:Command_Block_PreparationOnly(client, const String:command[], argc)
-{
-	if(g_isDRmap && g_onPreparation)
-		return Plugin_Stop;
-	return Plugin_Continue;
-}*/
 
 
 /* EmitRandomSound()
