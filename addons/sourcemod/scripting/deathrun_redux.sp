@@ -4,6 +4,7 @@
 // ---- Includes ---------------------------------------------------------------
 #include <sourcemod>
 #include <morecolors>
+#include <sdkhooks>
 #include <tf2_stocks>
 #include <tf2items>
 #include <steamtools>
@@ -126,7 +127,7 @@ public OnPluginStart()
 	HookEvent("arena_round_start", OnRoundStart); 
 	HookEvent("post_inventory_application", OnPlayerInventory);
 	HookEvent("player_spawn", OnPlayerSpawn);
-	HookEvent("player_death", OnPlayerDeath, EventHookMode_Post);
+	HookEvent("player_death", OnPlayerDeath, EventHookMode_Pre);
 	
 	//Preferences
 	g_DRCookie = RegClientCookie("DR_dontBeDeath", "Does the client want to be the Death?", CookieAccess_Private);
@@ -879,7 +880,7 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 				EmitRandomSound(g_SndLastAlive,GetLastPlayer(TEAM_RED,client));
 				
 			new currentDeath = GetLastPlayer(TEAM_BLUE);
-			SetEventInt(event,"attacker",currentDeath);
+			SetEventInt(event,"attacker",GetClientUserId(currentDeath));
 			if(g_canEmitSoundToDeath)
 			{
 				if(currentDeath > 0 && currentDeath <= MaxClients)
@@ -898,10 +899,10 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 				for(new i=1 ; i<=MaxClients ; i++)
 					if(IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(client) == TEAM_BLUE)
 						SetEntProp(i, Prop_Send, "m_bGlowEnabled", 1);
-			
 		}
 		
 	}
+	return Plugin_Continue;
 }
 
 
