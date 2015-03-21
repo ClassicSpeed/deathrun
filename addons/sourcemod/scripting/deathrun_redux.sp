@@ -880,7 +880,8 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 				EmitRandomSound(g_SndLastAlive,GetLastPlayer(TEAM_RED,client));
 				
 			new currentDeath = GetLastPlayer(TEAM_BLUE);
-			SetEventInt(event,"attacker",GetClientUserId(currentDeath));
+			if(currentDeath > 0 && currentDeath <= MaxClients && IsClientInGame(currentDeath))
+				SetEventInt(event,"attacker",GetClientUserId(currentDeath));
 			if(g_canEmitSoundToDeath)
 			{
 				if(currentDeath > 0 && currentDeath <= MaxClients)
