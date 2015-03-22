@@ -36,6 +36,7 @@ new bool:g_canEmitSoundToDeath = true;
 
 //GenerealConfig
 new bool:g_diablefalldamage;
+new bool:g_finishoffrunners;
 new Float:g_runner_speed;
 new Float:g_death_speed;
 new g_runner_outline;
@@ -210,6 +211,7 @@ LoadConfigs()
 	//--DEFAULT VALUES--
 	//GenerealConfig
 	g_diablefalldamage = false;
+	g_finishoffrunners = true;
 	g_runner_speed = 300.0;
 	g_death_speed = 400.0;
 	g_runner_outline = 0;
@@ -253,7 +255,7 @@ LoadConfigs()
 	if(KvJumpToKey(hDR,"default"))
 	{
 		g_diablefalldamage = bool:KvGetNum(hDR, "DisableFallDamage", _:g_diablefalldamage);
-
+		g_finishoffrunners = bool:KvGetNum(hDR, "FinishOffRunners", _:g_finishoffrunners);
 		if(KvJumpToKey(hDR,"speed"))
 		{
 			g_runner_speed = KvGetFloat(hDR,"runners",g_runner_speed);
@@ -430,6 +432,7 @@ LoadConfigs()
 		}
 		
 		g_diablefalldamage = bool:KvGetNum(hDR, "DisableFallDamage", _:g_diablefalldamage);
+		g_finishoffrunners = bool:KvGetNum(hDR, "FinishOffRunners", _:g_finishoffrunners);
 
 		if(KvJumpToKey(hDR,"speed"))
 		{
@@ -880,7 +883,7 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 				EmitRandomSound(g_SndLastAlive,GetLastPlayer(TEAM_RED,client));
 				
 			new currentDeath = GetLastPlayer(TEAM_BLUE);
-			if(currentDeath > 0 && currentDeath <= MaxClients && IsClientInGame(currentDeath))
+			if(currentDeath > 0 && currentDeath <= MaxClients && IsClientInGame(currentDeath) && g_finishoffrunners)
 				SetEventInt(event,"attacker",GetClientUserId(currentDeath));
 			if(g_canEmitSoundToDeath)
 			{
