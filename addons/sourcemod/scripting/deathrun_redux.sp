@@ -7,7 +7,7 @@
 #include <sdkhooks>
 #include <tf2_stocks>
 #include <tf2items>
-#include <steamtools>
+//#include <steamtools>
 #include <tf2attributes>
 #include <clientprefs>
 
@@ -24,7 +24,6 @@
 #define DBD_ON 2
 #define DBD_THISMAP 3 // The cookie will never have this value
 #define TIME_TO_ASK 30.0 //Delay between asking the client its preferences and it's connection/join.
-
 
 // ---- Variables --------------------------------------------------------------
 new bool:g_isDRmap = false;
@@ -168,7 +167,7 @@ public OnMapStart()
 	{
 		LogMessage("Deathrun map detected. Enabling Deathrun Gamemode.");
 		g_isDRmap = true;
-		Steam_SetGameDescription("DeathRun Redux");
+//		Steam_SetGameDescription("DeathRun Redux");
 		AddServerTag("deathrun");
 		for (new i = 1; i <= MaxClients; i++)
 		{
@@ -184,7 +183,7 @@ public OnMapStart()
 	{
 		LogMessage("Current map is not a deathrun map. Disabling Deathrun Gamemode.");
 		g_isDRmap = false;
-		Steam_SetGameDescription("Team Fortress");	
+//		Steam_SetGameDescription("Team Fortress");	
 		RemoveServerTag("deathrun");
 	}
 }
