@@ -174,7 +174,6 @@ public OnMapStart()
 		{	
 			if (!AreClientCookiesCached(i))
 			{	
-
 				continue;
 			}
 			OnClientCookiesCached(i);
@@ -278,7 +277,6 @@ LoadConfigs()
 	KvRewind(hDR);
 	if(KvJumpToKey(hDR,"weapons"))
 	{	
-
 		g_MeleeOnly = bool:KvGetNum(hDR, "MeleeOnly", _:g_MeleeOnly);
 		if(g_MeleeOnly)
 		{	
@@ -345,16 +343,13 @@ LoadConfigs()
 		if((onrunners && ondeath))
 		{	
 			teamToBlock = 1;
-
 		}
 		else if(onrunners && !ondeath)
 		{	
-
 			teamToBlock = TEAM_RED;
 		}
 		else if(!onrunners && ondeath)
 		{	
-
 			teamToBlock = TEAM_BLUE;
 		}
 
@@ -379,7 +374,6 @@ LoadConfigs()
 				KvGetString(hDR, key, sndFile, sizeof(sndFile),"");
 				if(StrEqual(sndFile, ""))
 				{	
-
 					break;
 				}
 				SetTrieString(g_SndRoundStart,key,sndFile);
@@ -395,7 +389,6 @@ LoadConfigs()
 				KvGetString(hDR, key, sndFile, sizeof(sndFile),"");
 				if(StrEqual(sndFile, ""))
 				{	
-
 					break;
 				}
 				SetTrieString(g_SndOnDeath,key,sndFile);
@@ -413,7 +406,6 @@ LoadConfigs()
 				KvGetString(hDR, key, sndFile, sizeof(sndFile),"");
 				if(StrEqual(sndFile, ""))
 				{	
-
 					break;
 				}
 				SetTrieString(g_SndOnKill,key,sndFile);
@@ -429,7 +421,6 @@ LoadConfigs()
 				KvGetString(hDR, key, sndFile, sizeof(sndFile),"");
 				if(StrEqual(sndFile, ""))
 				{	
-
 					break;
 				}
 				SetTrieString(g_SndLastAlive,key,sndFile);
@@ -461,7 +452,6 @@ LoadConfigs()
 		{	
 			g_runner_speed = KvGetFloat(hDR,"runners",g_runner_speed);
 			g_death_speed = KvGetFloat(hDR,"death",g_death_speed);
-
 			KvGoBack(hDR);
 		}
 		if(KvJumpToKey(hDR,"outline"))
@@ -524,37 +514,17 @@ ProcessListeners(bool:removeListerners=false)
 		{	
 			if(StrEqual(command, ""))
 			{	
-
 				break;
 			}
 
 			if(removeListerners)
 			{	
-
 				RemoveCommandListener(Command_Block,command);
 			}
 			else
 			{	
 				AddCommandListener(Command_Block,command);
 			}
-
-			/*		
-			 GetTrieValue(g_CmdBlockOnlyOnPrep,key,PreparationOnly);
-			 if(removeListerners)
-			 {
-			 if(PreparationOnly == 1)
-			 RemoveCommandListener(Command_Block_PreparationOnly,command);
-			 else
-			 RemoveCommandListener(Command_Block,command);
-			 }
-			 else
-			 {
-			 if(PreparationOnly == 1)
-			 AddCommandListener(Command_Block_PreparationOnly,command);
-			 else
-			 AddCommandListener(Command_Block,command);
-			 }*/
-
 		}
 	}
 }
@@ -677,7 +647,7 @@ public Action:OnPrepartionStart(Handle:event, const String:name[], bool:dontBroa
 			SetEntityMoveType(i, MOVETYPE_NONE);
 		}
 
-		EmitRandomSound(g_SndRoundStart, -1);
+		EmitRandomSound(g_SndRoundStart);
 	}
 }
 
@@ -964,7 +934,7 @@ public Action:OnPlayerDeath(Handle:event, const String:name[], bool:dontBroadcas
 				EmitRandomSound(g_SndLastAlive,GetLastPlayer(TEAM_RED,client));
 			}
 
-			new currentDeath = GetLastPlayer(TEAM_BLUE, -1);
+			new currentDeath = GetLastPlayer(TEAM_BLUE);
 			if(currentDeath > 0 && currentDeath <= MaxClients && IsClientInGame(currentDeath) && g_finishoffrunners)
 			{	
 				SetEventInt(event,"attacker",GetClientUserId(currentDeath));
@@ -1029,7 +999,7 @@ stock BalanceTeams()
 		new team, i;
 		for(i = 1; i <= MaxClients; i++)
 		{
-			if(!IsClientConnected(i) || !IsClientInGame(i))
+			if(!IsClientConnected(i) || !IsClientInGame(i) || IsFakeClient(i))
 			{
 				continue;
 			}
@@ -1083,7 +1053,7 @@ public GetRandomValid()
 	new min = GetMinTimesPlayed(false);
 	for(new i = 1; i <= MaxClients; i++)
 	{	
-		if(!IsClientConnected(i) || !IsClientInGame(i))
+		if(!IsClientConnected(i) || !IsClientInGame(i) || IsFakeClient(i) || i == g_lastdeath)
 		{	
 			continue;
 		}
@@ -1112,7 +1082,7 @@ public GetRandomValid()
 		min = GetMinTimesPlayed(true);
 		for(new i = 1; i <= MaxClients; i++)
 		{	
-			if(!IsClientConnected(i) || !IsClientInGame(i) )
+			if(!IsClientConnected(i) || !IsClientInGame(i) || IsFakeClient(i) || i == g_lastdeath )
 			{	
 				continue;
 			}
@@ -1147,11 +1117,16 @@ GetMinTimesPlayed(bool:ignorePref)
 	new min = -1;
 	for(new i = 1; i <= MaxClients; i++)
 	{	
-		if(!IsClientConnected(i) || !IsClientInGame(i) || g_timesplayed_asdeath[i] == -1)
+		if(!IsClientConnected(i) || !IsClientInGame(i) || g_timesplayed_asdeath[i] == -1 || IsFakeClient(i))
 		{	
 			continue;
 		}
 		if(i == g_lastdeath)
+		{	
+			continue;
+		}
+		new team = GetClientTeam(i);
+		if(team != TEAM_BLUE && team != TEAM_RED)
 		{	
 			continue;
 		}
@@ -1170,7 +1145,6 @@ GetMinTimesPlayed(bool:ignorePref)
 		{	
 			min = g_timesplayed_asdeath[i];
 		}
-
 	}
 	return min;
 
@@ -1343,7 +1317,7 @@ public Action:Command_Block(client, const String:command[], argc)
  **
  ** Emits a random sound from a trie, it will be emitted for everyone is a client isn't passed.
  ** -------------------------------------------------------------------------- */
-public EmitRandomSound(Handle:sndTrie,client)
+EmitRandomSound(Handle:sndTrie,client=-1)
 {	
 	new trieSize = GetTrieSize(sndTrie);
 
@@ -1388,7 +1362,7 @@ public GetAlivePlayersCount(team,ignore)
 	return count;
 }
 
-public GetLastPlayer(team,ignore)
+GetLastPlayer(team,ignore=-1)
 {	
 	for(new i = 1; i <= MaxClients; i++ )
 	{	
